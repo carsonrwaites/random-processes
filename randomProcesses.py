@@ -6,11 +6,11 @@ class BernoulliProcess:
     def __init__(self, p=0.5):
         self.p=p
 
-    def simulate(self, n_trials, n_sims=1):
+    def simulate(self, n_periods, n_sims=1):
         self.paths = None
-        self.n_trials = n_trials
+        self.n_periods = n_periods
         self.n_sims = n_sims
-        x_t = (np.random.uniform(size=(n_trials, n_sims))>(1-self.p))*1
+        x_t = (np.random.uniform(size=(n_periods, n_sims))>(1-self.p))*1
         self.paths = x_t
         return x_t
 
@@ -19,6 +19,7 @@ class BernoulliProcess:
         ax.plot(self.paths,
                 c='blue',
                 alpha=0.5)
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         plt.show()
 
     def get_distributions(self):
@@ -33,14 +34,14 @@ class RandomWalk:
         self.init_value=init_value
         self.paths = None
 
-    def simulate(self, n_steps, n_sims=1):
+    def simulate(self, n_periods, n_sims=1):
         self.paths = None
-        self.n_steps = n_steps
+        self.n_periods = n_periods
         self.n_sims = n_sims
-        noise = np.random.choice([1, -1], size=(n_steps, n_sims), replace=True)
+        noise = np.random.choice([1, -1], size=(n_periods, n_sims), replace=True)
         noise[0, :] = 0
         noise = noise.cumsum(axis=0)
-        x_t = np.zeros(shape=(n_steps, n_sims)) + self.init_value
+        x_t = np.zeros(shape=(n_periods, n_sims)) + self.init_value
         x_t += noise
         self.paths = x_t
         return x_t
@@ -50,6 +51,7 @@ class RandomWalk:
         ax.plot(self.paths,
                 c='blue',
                 alpha=0.5)
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         plt.show()
 
 class BrownianMotion:
@@ -80,6 +82,7 @@ class BrownianMotion:
                 self.paths,
                 c='blue',
                 alpha=0.5)
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         plt.show()
 
 class OUProcess:
@@ -110,10 +113,70 @@ class OUProcess:
                 self.paths,
                 c='blue',
                 alpha=0.5)
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         plt.show()
 
 class GeometricBM:
-    pass
+    def __init__(self, mu=0.0, sigma=1.0, dt=100, init_value=1.0):
+        self.mu = mu
+        self.sigma = sigma
+        self.dt = dt
+        self.init_value = init_value
+        self.paths = None
+
+    def simulate(self, n_periods, n_sims=1):
+        self.paths = None
+        self.n_periods = n_periods
+        self.n_sims = n_sims
+        n_steps = n_periods * self.dt
+        noise = self.sigma * np.sqrt(1 / self.dt) * np.random.normal(loc=0, scale=1, size=(n_steps, n_sims))
+        noise += (self.mu - 0.5*np.square(self.sigma)) * (1 / self.dt)
+        noise[0, :] = 0
+        noise = noise.cumsum(axis=0)
+        noise = np.exp(noise)
+        x_t = np.zeros(shape=(n_steps, n_sims)) + self.init_value
+        x_t *= noise
+        self.paths = x_t
+        return x_t
+
+    def show_paths(self):
+        fig, ax = plt.subplots()
+        ax.plot(np.linspace(0, self.n_periods, self.n_periods * self.dt),
+                self.paths,
+                c='blue',
+                alpha=0.5)
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        plt.show()
+
+class BrownianBridge:
+    def __init__(self, a=0.0, b=0.0, dt=100):
+        self.a = a
+        self.b = b
+        self.dt = dt
+        self.paths = None
+
+    def simulate(self, n_periods, n_sims=1):
+        self.paths = None
+        self.n_periods = n_periods
+        self.n_sims = n_sims
+        n_steps = n_periods * self.dt
+        noise = np.sqrt(1 / self.dt) * np.random.normal(loc=0, scale=1, size=(n_steps, n_sims))
+        noise[0, :] = 0
+        noise = noise.cumsum(axis=0)
+        times = np.linspace(0, n_periods, n_steps).reshape(n_steps, 1) * np.ones(shape=(n_steps, n_sims))
+        #x_t = np.zeros(shape=(n_steps, n_sims)) + self.init_value
+        x_t = self.a*(1-times)/n_periods + self.b*(times/n_periods) + noise - (times/n_periods)*noise[-1:,]
+        self.paths = x_t
+        return x_t
+
+    def show_paths(self):
+        fig, ax = plt.subplots()
+        ax.plot(np.linspace(0, self.n_periods, self.n_periods * self.dt),
+                self.paths,
+                c='blue',
+                alpha=0.5)
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        plt.show()
 
 class PoissonProcess:
     pass
