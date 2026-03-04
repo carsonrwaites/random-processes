@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+from matplotlib.animation import FuncAnimation, PillowWriter
 
 class StochasticProcess:
     def __init__(self, init_value=0.0, dt=None, title=None):
@@ -8,6 +9,7 @@ class StochasticProcess:
         self.dt = dt
         self.paths = None
         self.time_index = None
+        self.title = title
 
     def simulate(self, n_periods, n_sims=1, seed=None):
         if seed is not None:
@@ -31,12 +33,42 @@ class StochasticProcess:
         fig, ax = plt.subplots()
         ax.plot(self.time_index, self.paths, alpha=alpha)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.set_title(self.title)
         plt.show()
+
+    def export_animated_gif(self, filename="random_paths.gif", fps=15):
+        fig, ax = plt.subplots(figsize=(8, 5))
+        lines = ax.plot(self.time_index[0:1],
+                        self.paths[0:1, :],
+                        alpha=0.5)
+
+        fig.suptitle(self.title, fontsize=12)
+
+        ax.set_ylim(self.paths.min() - (self.paths.max() - self.paths.min()) * 0.1,
+                    self.paths.max() + (self.paths.max() - self.paths.min()) * 0.1)
+        ax.set_xlim(self.time_index.min(), self.time_index.max())
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.set_xlabel('t')
+
+        pause_frames = round(fps * 2)  # 2 second pause at the end of the loop
+        frame_sequence = list(range(len(self.time_index))) + [len(self.time_index) - 1] * pause_frames
+
+        def update(frame):
+            x = self.time_index[0:frame+1]
+            y = self.paths[0:frame+1, :]
+            for i, line in enumerate(lines):
+                line.set_xdata(x)
+                line.set_ydata(y[:, i])
+            return lines
+        ani = FuncAnimation(fig, update, frames=frame_sequence, interval=1000 // fps, blit=True)
+        ani.save(filename, writer=PillowWriter(fps=fps))
+        plt.close()
+        print(f"Saved to {filename}")
 
 
 class BernoulliProcess(StochasticProcess):
     def __init__(self, p=0.5, init_value=0.0, dt=None):
-        super().__init__(init_value, dt)
+        super().__init__(init_value, dt, f'Bernoulli Process | $p = {p}$')
         self.p=p
 
     def _simulate_paths(self, time_index, n_sims):
@@ -55,7 +87,7 @@ class BernoulliProcess(StochasticProcess):
 
 class RandomWalk(StochasticProcess):
     def __init__(self, init_value=0.0, dt=None):
-        super().__init__(init_value, dt)
+        super().__init__(init_value, dt, 'Random Walk')
         self.init_value=init_value
 
     def _simulate_paths(self, time_index, n_sims):
@@ -70,7 +102,7 @@ class RandomWalk(StochasticProcess):
 
 class BrownianMotion(StochasticProcess):
     def __init__(self, mu=0.0, sigma=1.0, dt=0.01, init_value=0.0):
-        super().__init__(init_value, dt)
+        super().__init__(init_value, dt, f'Brownian Motion | $\\mu = {mu}$ | $\\sigma = {sigma}$')
         self.mu = mu
         self.sigma = sigma
 
@@ -85,7 +117,7 @@ class BrownianMotion(StochasticProcess):
 
 class OUProcess(StochasticProcess):
     def __init__(self, mu=0.0, theta=1.0, sigma=1.0, dt=0.01, init_value=0.0):
-        super().__init__(init_value)
+        super().__init__(init_value, dt, f'OU Process | $\\mu = {mu}$ | $\\theta = {theta}$ | $\\sigma = {sigma}$')
         self.mu = mu
         self.theta = theta
         self.sigma = sigma
@@ -104,7 +136,7 @@ class OUProcess(StochasticProcess):
 
 class GeometricBM(StochasticProcess):
     def __init__(self, mu=0.0, sigma=1.0, dt=0.01, init_value=1.0):
-        super().__init__(init_value, dt)
+        super().__init__(init_value, dt, f'Geometric BM | $\\mu = {mu}$ | $\\sigma = {sigma}$')
         self.mu = mu
         self.sigma = sigma
 
@@ -120,7 +152,7 @@ class GeometricBM(StochasticProcess):
 
 class BrownianBridge(StochasticProcess):
     def __init__(self, a=0.0, b=0.0, dt=0.01):
-        super().__init__(a, dt)
+        super().__init__(a, dt, f'Brownian Bridge | $a = {a}$ | $b = {b}$')
         self.a = a
         self.b = b
 
